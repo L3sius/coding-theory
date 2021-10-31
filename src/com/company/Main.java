@@ -48,7 +48,12 @@ public class Main {
     public static String[] inputData = new String[4];
     public static Integer[] splitData = new Integer[4];
     public static String[] H;
-    public static Integer[] matrix;
+    public static Integer[][] matrix;
+    public static int[] possibleCombinations;
+    public static Integer[][] temporaryMatrix;
+    public static int counter = 0;
+    public static int columns = 0;
+    public static int combinationAmount = 0;
 
     public static void main(String[] args) throws IOException {
 
@@ -59,7 +64,7 @@ public class Main {
         // Reading data using readLine
         System.out.println("Enter which scenario to use");
         //TODO: Uncomment this later
-//        String scenario = reader.readLine();
+        //String scenario = reader.readLine();
         String scenario = "1";
         // Printing the read line
 
@@ -87,10 +92,109 @@ public class Main {
 
     private static void generateMatrix(int m, int r) {
         int rows = calculateRows(m, r);
-        int columns = (int) Math.pow(2, m);
+        columns = (int) Math.pow(2, m);
         System.out.println("Total rows: " + rows + " Total columns: " + columns);
         //If m < r
+        populateH(m, columns);
 
+        int rowCounter = 0;
+        //Determine matrix size
+        matrix = new Integer[rows][columns];
+
+        //Add v0 vector
+        for (int i = 0; i < columns; i++) {
+            matrix[0][i] = 1;
+        }
+        rowCounter++;
+
+        //Add v1,v2,...,vm
+        if (r >= 1) {
+            for (int i = 1; i <= m; i++) {
+                for (int j = 0; j < columns; j++) {
+                    //startsWith returns true if the String begins with "0", it starts looking from the specified index
+                    if (H[j].startsWith("0", i - 1)) {
+                        matrix[i][j] = 1;
+                    } else {
+                        matrix[i][j] = 0;
+                    }
+                }
+                rowCounter++;
+            }
+            //Add combinations
+            if (r >= 2) {
+                //Create temporary Matrix
+                temporaryMatrix = new Integer[combinationAmount][columns];
+                //Prepare temporary Array
+                for (int i = 0; i < combinationAmount; i++) {
+                    for (int j = 0; j < columns; j++)
+                        temporaryMatrix[i][j] = 1;
+                }
+                possibleCombinations = new int[m];
+                for (int i = 0; i < m; i++) {
+                    possibleCombinations[i] = i + 1;
+                }
+                for (int i = 2; i <= r; i++) {
+                    printCombination(possibleCombinations, possibleCombinations.length, i);
+                }
+                for (int i = 0; i < temporaryMatrix.length; i++) {
+                    for (int j = 0; j < columns; j++) {
+                        matrix[rowCounter][j] = temporaryMatrix[i][j];
+                    }
+                    rowCounter++;
+                }
+            }
+        }
+        //Print matrix
+        printMatrix(matrix);
+    }
+
+    private static void printCombination(int[] arr, int n, int r) {
+        // A temporary array to store all combination one by one
+        int data[] = new int[r];
+
+
+        // Print all combination using temporary array 'data[]'
+        combinationUtil(arr, data, 0, n - 1, 0, r);
+    }
+
+    private static void combinationUtil(int arr[], int data[], int start,
+                                        int end, int index, int r) {
+
+        // Current combination is ready to be printed, print it
+        if (index == r) {
+            for (int j = 0; j < r; j++) {
+            // System.out.print(data[j] + " ");
+                for (int k = 0; k < columns; k++) {
+                    temporaryMatrix[counter][k] *= matrix[data[j]][k];
+                }
+            }
+            counter += 1;
+            // System.out.println("");
+            return;
+        }
+
+        // replace index with all possible elements. The condition
+        // "end-i+1 >= r-index" makes sure that including one element
+        // at index will make a combination with remaining elements
+        // at remaining positions
+
+        for (int i = start; i <= end && end - i + 1 >= r - index; i++) {
+            data[index] = arr[i];
+
+            combinationUtil(arr, data, i + 1, end, index + 1, r);
+        }
+    }
+
+    private static void printMatrix(Integer[][] matrix) {
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < matrix[i].length; j++) {
+                System.out.print(matrix[i][j] + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    private static void populateH(int m, int columns) {
         //Populate H (with vectors, which are {00, 01, 10, 11} and etc.)
         H = new String[columns];
 
@@ -101,7 +205,7 @@ public class Main {
             //System.out.println("This is the binary value:" + binaryValue);
             //If length is smaller than m (for example binary value is 10, but m is 3, then add an 0 so it becomes 010.
             while (binaryValue.length() < m) {
-                binaryValue += '0';
+                binaryValue = '0' + binaryValue;
             }
             H[i] = binaryValue;
 
@@ -109,8 +213,7 @@ public class Main {
         for (int i = 0; i < H.length; i++) {
             System.out.print(H[i] + " ");
         }
-
-
+        System.out.println();
     }
 
     private static Integer calculateRows(int m, int r) {
@@ -123,6 +226,7 @@ public class Main {
         //Add all the combinations, starting from v1*v2, ...
         for (int i = 2; i <= r; i++) {
             amount += combinations(m, i);
+            combinationAmount += combinations(m, i);
         }
         return amount;
     }
@@ -135,8 +239,7 @@ public class Main {
     public static int calculateFactorial(int number) {
         int fact = 1;
         int i = 1;
-        while(i<=number)
-        {
+        while (i <= number) {
             fact *= i;
             i++;
         }
@@ -155,7 +258,7 @@ public class Main {
             convertToInt(inputData);
             myReader.close();
         } catch (FileNotFoundException e) {
-            System.out.println("An error occurred.");
+            System.out.println("File not found.");
             e.printStackTrace();
         }
     }
