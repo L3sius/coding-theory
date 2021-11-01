@@ -54,6 +54,8 @@ public class Main {
     public static int counter = 0;
     public static int columns = 0;
     public static int combinationAmount = 0;
+    public static String scenario;
+    public static Integer encodedVector;
 
     public static void main(String[] args) throws IOException {
 
@@ -65,7 +67,7 @@ public class Main {
         System.out.println("Enter which scenario to use");
         //TODO: Uncomment this later
         //String scenario = reader.readLine();
-        String scenario = "1";
+        scenario = "1";
         // Printing the read line
 
         switch (scenario) {
@@ -74,6 +76,7 @@ public class Main {
                 readFile();
                 System.out.println("m = " + inputData[0] + " r = " + inputData[1]);
                 generateMatrix(splitData[0], splitData[1]);
+                encodedVector = encode(matrix,splitData[3]);
                 break;
             case "2":
                 System.out.println("scenario 2");
@@ -90,8 +93,59 @@ public class Main {
 
     }
 
+    private static Integer encode(Integer[][] matrix, Integer inputVector) {
+        Integer encodedVector;
+        Integer[] encodedDigits = new Integer[columns];
+        // Populate matrix with 0's
+        for(int i = 0; i < encodedDigits.length; i++)
+        {
+            encodedDigits[i] = 0;
+        }
+        // Convert input to an array of elements (digits)
+        int[] digits = Integer.toString(inputVector).chars().map(c -> c-'0').toArray();
+
+        for(int i = 0; i < String.valueOf(inputVector).length(); i++)
+        {
+            for(int j = 0; j < columns; j++)
+            {
+                // Start encoding with the generated matrix
+                encodedDigits[j] += (matrix[i][j] * digits[i]);
+                // Do mod2 operation
+                if ((encodedDigits[j] % 2) == 0)
+                {
+                    encodedDigits[j] = 0;
+                }
+                else
+                {
+                    encodedDigits[j] = 1;
+                }
+            }
+        }
+
+        System.out.println("Encoded value:");
+        for(int i = 0; i < encodedDigits.length; i++)
+        {
+            System.out.print(encodedDigits[i]);
+        }
+        return 0;
+    }
+
     private static void generateMatrix(int m, int r) {
         int rows = calculateRows(m, r);
+
+        //For scenario 1
+        if(rows != String.valueOf(splitData[3]).length() && scenario.equals("1"))
+        {
+            System.out.println("Incorrect value, input should be the size of: " + rows);
+            System.out.println("Value provided: " + splitData[3] + " which is size of: " + String.valueOf(splitData[3]).length());
+            System.exit(0);
+        }
+        else
+        {
+            System.out.println("Chance to fail: " + splitData[2]);
+            System.out.println("Input to send: " + splitData[3]);
+        }
+
         columns = (int) Math.pow(2, m);
         System.out.println("Total rows: " + rows + " Total columns: " + columns);
         //If m < r
@@ -256,6 +310,11 @@ public class Main {
                 inputData = data.split(" ");
             }
             convertToInt(inputData);
+            if(splitData[2] > 100 || splitData[2] < 0)
+            {
+                System.out.println("Chance to fail should be between 0-100");
+                System.exit(0);
+            }
             myReader.close();
         } catch (FileNotFoundException e) {
             System.out.println("File not found.");
