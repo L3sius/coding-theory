@@ -4,6 +4,8 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.lang.Integer.parseInt;
+
 public class Main {
 
     // Tiesinis kodas - užkoduojame pradinę informacijos ilgį k daugindami iš generuojančios matricos (Vektoriaus ir matricos daugyba)
@@ -61,6 +63,14 @@ public class Main {
     public static int[][] allCombinations;
     public static int[][] lValues;
     public static int wSize;
+    public static int[] votingWinner;
+    public static Integer[] encodedVectorUpdated;
+    public static Integer[] rowSum;
+
+    // Variables for second task
+    public static String textInput;
+    public static String[] textInputEncoded;
+    public static String textAfterDecoding = "";
 
     public static void main(String[] args) throws IOException {
 
@@ -70,21 +80,34 @@ public class Main {
 
         // Reading data using readLine
         System.out.println("Enter which scenario to use");
-        //TODO: Uncomment this later
-        //String scenario = reader.readLine();
-        scenario = "1";
+        scenario = reader.readLine();
         // Printing the read line
 
         switch (scenario) {
             case "1":
                 System.out.println("scenario 1");
-                readFile();
+                readFile(scenario);
                 generateMatrix((splitData[0]), splitData[1]);
                 encodedVector = encode(matrix, inputData[3]);
-                sendThroughTunnel(encodedVector, splitData[2]);
+                encodedVectorUpdated = encodedVector;
+                System.out.println(sendThroughTunnel(encodedVector, splitData[2]));
                 break;
             case "2":
                 System.out.println("scenario 2");
+                readFile(scenario);
+                generateMatrix((splitData[0]), splitData[1]);
+
+                textInputEncoded = generateEncodedVector();
+                for(int i = 0; i < textInputEncoded.length; i++)
+                {
+                    encodedVector = encode(matrix, textInputEncoded[i]);
+                    encodedVectorUpdated = encodedVector;
+                    textAfterDecoding += sendThroughTunnel(encodedVector, splitData[2]);
+                }
+                System.out.println("This is the final text");
+                System.out.println(textAfterDecoding);
+                System.out.println(prettyBinary(textAfterDecoding, 8, " "));
+                System.out.println("Converted back to text: " + convertBinaryToString(prettyBinary(textAfterDecoding, 8, " ")));
                 break;
             case "3":
                 System.out.println("scenario 3");
@@ -92,13 +115,109 @@ public class Main {
             default:
                 System.out.println("Incorrect scenario");
                 break;
-
         }
 
 
     }
 
-    private static void sendThroughTunnel(Integer[] encodedVector, int chance) {
+    private static String[] generateEncodedVector() {
+
+        System.out.println("Text converted to binary:");
+        String convertedBinary = convertStringToBinary(textInput);
+        System.out.println(convertedBinary);
+
+        // TODO: Use this later
+        System.out.println(prettyBinary(convertedBinary, 8, " "));
+        System.out.println("Converted back to text: " + convertBinaryToString(prettyBinary(convertedBinary, 8, " ")));
+
+
+        String[] encodedVectorList;
+        boolean isDividable = true;
+        if(convertedBinary.length() % rows == 0)
+        {
+            System.out.println("Text input length: " + convertedBinary.length());
+            System.out.println("rows: " + rows);
+            System.out.println("lenght/columns: " + convertedBinary.length() / rows);
+            encodedVectorList = new String[convertedBinary.length() / rows];
+        }
+        else
+        {
+            System.out.println("Text input length: " + convertedBinary.length());
+            System.out.println("rows: " + rows);
+            System.out.println("lenght/columns + 1: " + (convertedBinary.length() / rows+1));
+            encodedVectorList = new String[convertedBinary.length() / rows+1];
+            isDividable = false;
+        }
+
+        var tempText = "";
+        var counter = 0;
+        var index = 0;
+        for (int stringIndex = 0; stringIndex < convertedBinary.length(); stringIndex++) {
+            tempText += convertedBinary.toCharArray()[stringIndex];
+            counter++;
+            if (counter == rows) {
+                encodedVectorList[index] = tempText;
+                index++;
+                counter = 0;
+                tempText = "";
+            }
+        }
+        if(!isDividable)
+        {
+            System.out.println("Was not dividable, filling rest with 0's");
+            encodedVectorList[index] = tempText;
+            for(int charIndex = counter; charIndex < rows; charIndex++)
+            {
+                encodedVectorList[index] += "0";
+            }
+        }
+
+
+        // Print the encodedVectorList
+        System.out.println("The encoded vector list");
+        for (int i = 0; i < encodedVectorList.length; i++) {
+            System.out.print(encodedVectorList[i] + " ");
+        }
+        System.out.println();
+        return encodedVectorList;
+    }
+
+    public static String convertStringToBinary(String input) {
+
+        StringBuilder result = new StringBuilder();
+        char[] chars = input.toCharArray();
+        for (char aChar : chars) {
+            result.append(
+                    String.format("%8s", Integer.toBinaryString(aChar))   // char -> int, auto-cast
+                            .replaceAll(" ", "0")                         // zero pads
+            );
+        }
+        return result.toString();
+    }
+
+    public static String convertBinaryToString(String input) {
+
+        String raw = Arrays.stream(input.split(" "))
+                .map(binary -> Integer.parseInt(binary, 2))
+                .map(Character::toString)
+                .collect(Collectors.joining()); // cut the space
+
+        return raw;
+    }
+
+    public static String prettyBinary(String binary, int blockSize, String separator) {
+
+        List<String> result = new ArrayList<>();
+        int index = 0;
+        while (index < binary.length()) {
+            result.add(binary.substring(index, Math.min(index + blockSize, binary.length())));
+            index += blockSize;
+        }
+
+        return result.stream().collect(Collectors.joining(separator));
+    }
+
+    private static String sendThroughTunnel(Integer[] encodedVector, int chance) throws IOException {
         Random r = new Random();
         for (int i = 0; i < encodedVector.length; i++) {
             int chanceToSucceed = r.nextInt(100) + 1;
@@ -122,37 +241,64 @@ public class Main {
             System.out.print(encodedVector[i]);
         }
         System.out.println();
-        //TODO: Do you want to change it?
-//        System.out.println("Decoded vector");
-        System.out.println(decode(mGlobal, rGlobal, encodedVector, allCombinations));
+        if (scenario.equals("1") && changeEncoded()) {
+            System.out.println("Enter new encoded vector");
+            Scanner in = new Scanner(System.in);
+            String s = in.nextLine();
+            if (s.length() != encodedVector.length) {
+                System.out.println("Your new encoded vector should be of length = " + encodedVector.length);
+                System.exit(1);
+            } else {
+                for (int i = 0; i < encodedVector.length; i++) {
+                    encodedVector[i] = Character.getNumericValue(s.charAt(i));
+                }
+            }
+            System.out.println("Your new encoded value is: ");
+            for (int i = 0; i < encodedVector.length; i++) {
+                System.out.print(encodedVector[i]);
+            }
+            System.out.println();
+        }
+        return decode(mGlobal, rGlobal, encodedVector, allCombinations);
+    }
+
+    private static boolean changeEncoded() throws IOException {
+        System.out.println("Do you wish to change encoded vector? y/n");
+        // Enter data using BufferReader
+        Scanner in = new Scanner(System.in);
+        // Reading data using readLine
+        String value = in.nextLine();
+        if (value.equals("y")) {
+            return true;
+        } else if (value.equals("n")) {
+            return false;
+        } else {
+            System.out.println("Incorrect value entered, exiting program");
+            System.exit(1);
+            return false;
+        }
     }
 
     private static String decode(int m, int r, Integer[] encodedVector, int[][] allCombinations) {
-        String encodedInformation = arrayToString(encodedVector);
-        wSize = (int)Math.pow(2, mGlobal-rGlobal);
-        System.out.println("wSize is: " + wSize);
-//        System.out.println("Encoded information: " + encodedInformation);
-
-        int[] decodedV = new int[rows];
-
+        votingWinner = new int[rows];
         int currRow = rows;
+        rowSum = new Integer[columns];
 
-        //prasideda decodavimas
-        StringBuilder sb = new StringBuilder(encodedInformation);
 
-        //sukam su kiekvienu r kombinaciju t.y. pirma su pvz v1*v2*v3, tada su v1*v2, tada su v1*v3 ir t.t.
+        //Cycle with each combination, example: v1*v2*v3 -> v1*v2 -> v1*v3 and so on.
         for (int i = r; i >= 0; i--) {
             int numberOfCombinations = combinations(m, i);
             currRow -= numberOfCombinations;
-            System.out.println("number of combinations is: " + numberOfCombinations);
-            System.out.println("m is: " + m + " i is: " + i + " m-i is:" + (m - i));
+            //System.out.println("number of combinations is: " + numberOfCombinations);
 
-
+            wSize = (int) Math.pow(2, m - i);
+            for (int HIndex = 0; HIndex < H.length; HIndex++) {
+                System.out.print(H[HIndex] + " ");
+            }
+            System.out.println();
             ArrayList<String> tValues = new ArrayList<>();
-            ArrayList<String> wValues = new ArrayList<>();
 
             // Create tValues array depending on iteration of m-i
-            //TODO: Redo populateH function
             String binaryValue;
             for (int t = 0; t < Math.pow(2, m - i); t++) {
                 binaryValue = Integer.toBinaryString(t);
@@ -163,18 +309,22 @@ public class Main {
                     binaryValue = '0' + binaryValue;
                 }
                 tValues.add(binaryValue);
-
             }
-            for (int z = 0; z < tValues.size(); z++) {
-                System.out.print(tValues.get(z) + " ");
-            }
-            System.out.println();
 
             // Create lValues matrix depending on allCombinations
             // Finish populating allCombinations
             for (int j = 1; j <= mGlobal; j++) {
                 allCombinations[j][0] = j;
+
             }
+            // System.out.println("Printed allCombinations");
+            // for (int z = 0; z < allCombinations.length; z++) {
+            //    for (int j = 0; j < allCombinations[z].length; j++) {
+            //        System.out.print(allCombinations[z][j] + " ");
+            //    }
+            //    System.out.println();
+            // }
+
             // Create lValues matrix
             var counter = 0;
             for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
@@ -191,31 +341,107 @@ public class Main {
                 counter = 0;
             }
 
+            System.out.println("Printed possibleCombinations");
+            for (int z = 0; z < possibleCombinations.length; z++) {
+                System.out.print(possibleCombinations[z] + " ");
+            }
+            System.out.println();
+            System.out.println("Printed lValues Matrix");
+            for (int z = 0; z < lValues.length; z++) {
+                for (int j = 0; j < lValues[z].length; j++) {
+                    System.out.print(lValues[z][j] + " ");
+                }
+                System.out.println();
+            }
+
+            // Create wValues list
+            // Reset rowSum
+            Arrays.fill(rowSum, 0);
+            // Print encoded vector
+            System.out.println("Currently used encoded vector:");
+            for (int rowIndex = 0; rowIndex < encodedVectorUpdated.length; rowIndex++) {
+                System.out.print(encodedVectorUpdated[rowIndex]);
+            }
+            System.out.println();
             for (int j = 0; j < numberOfCombinations; j++) {
 
-                //String specificColumn = filteredMatrix.get(currRow+j);
-                //TODO: ?
                 System.out.println("currRow+j: " + (currRow + j));
-//                System.out.println("These are l values");
-//                for (int z = 0; z < lValues.size(); z++) {
-//                    System.out.print(lValues.get(z) + " ");
-//                }
-//                System.out.println();
+                for (int z = 0; z < tValues.size(); z++) {
+                    System.out.print(tValues.get(z) + " ");
+                }
+                System.out.println();
+                String[] wValues = new String[wSize];
+                int[] votingResult = new int[wSize];
+                for (int wIndex = 0; wIndex < wValues.length; wIndex++) {
+                    String wString = "";
+                    for (int HIndex = 0; HIndex < H.length; HIndex++) {
+                        String tempText = "";
+                        for (int columnIndex = 0; columnIndex < lValues.length && lValues[currRow + j][columnIndex] != 0; columnIndex++) {
+                            tempText += H[HIndex].toCharArray()[lValues[currRow + j][columnIndex] - 1];
+                        }
+                        if (tempText.equals(tValues.get(wIndex))) {
+                            wString += "1";
+                        } else {
+                            wString += "0";
+                        }
+                    }
+                    wValues[wIndex] = wString;
+                    System.out.println("w" + wIndex + "=" + wValues[wIndex]);
+                    // Scaliar product (c, w0) ...
+                    // Go through each char
+                    for (int charIndex = 0; charIndex < encodedVectorUpdated.length; charIndex++)
+                        votingResult[wIndex] += encodedVectorUpdated[charIndex] * wValues[wIndex].toCharArray()[charIndex];
+                    if ((votingResult[wIndex] % 2) == 0) {
+                        votingResult[wIndex] = 0;
+                    } else {
+                        votingResult[wIndex] = 1;
+                    }
+
+                }
+
+                // Scaliar product (c, w0) ...
+                for (int votingResultIndex = 0; votingResultIndex < votingResult.length; votingResultIndex++) {
+                    System.out.println("(c,w" + votingResultIndex + ") = " + votingResult[votingResultIndex]);
+                }
+                // Majority logic decoding
+                votingWinner[currRow + j] = mostFrequent(votingResult, votingResult.length);
+                System.out.println("Winner is: " + votingWinner[currRow + j]);
+
+                //Sum all necessary lines
+                for (int columnIndex = 0; columnIndex < rowSum.length; columnIndex++) {
+                    rowSum[columnIndex] += matrix[currRow + j][columnIndex] * votingWinner[currRow + j];
+                    if ((rowSum[columnIndex] % 2) == 0) {
+                        rowSum[columnIndex] = 0;
+                    } else {
+                        rowSum[columnIndex] = 1;
+                    }
+                }
+                // Print rowsum
+                // System.out.println("This is the partial row sum:");
+                // for (int rowIndex = 0; rowIndex < rowSum.length; rowIndex++) {
+                //    System.out.print(rowSum[rowIndex]);
+                // }
+                //System.out.println();
+
+            }
+            //Print rowsum
+            System.out.println("This is the total row sum:");
+            for (int rowIndex = 0; rowIndex < rowSum.length; rowIndex++) {
+                System.out.print(rowSum[rowIndex]);
+            }
+            System.out.println();
+            // Update the encoded vector
+            for (int columnIndex = 0; columnIndex < rowSum.length; columnIndex++) {
+                encodedVectorUpdated[columnIndex] += rowSum[columnIndex];
+                if ((encodedVectorUpdated[columnIndex] % 2) == 0) {
+                    encodedVectorUpdated[columnIndex] = 0;
+                } else {
+                    encodedVectorUpdated[columnIndex] = 1;
+                }
             }
 
-
-            // Create wValues array depending on tValues
-            for (int z = 0; z < tValues.size(); z++) {
-                // TODO: Kiek {0,1} tiek iteracijų, dabar 2
-            }
         }
-        // System.out.println("This is matrix containing all combinations");
-        // for (int z = 0; z < Main.allCombinations.length; z++) {
-        //  for (int j = 0; j < Main.allCombinations[z].length; j++) {
-        //      System.out.print(Main.allCombinations[z][j] + " ");
-        //  }
-        //  System.out.println();
-        //}
+
         System.out.println("This is matrix containing lValues");
         for (int z = 0; z < Main.lValues.length; z++) {
             for (int j = 0; j < Main.lValues[z].length; j++) {
@@ -223,7 +449,43 @@ public class Main {
             }
             System.out.println();
         }
-        return null;
+        if(scenario.equals("1"))
+        {
+            System.out.println("Input value");
+            System.out.println(inputData[3]);
+        }
+        System.out.println("Decoded vector");
+        return arrayToString(Arrays.stream(votingWinner).boxed().toArray(Integer[]::new));
+    }
+
+    private static int mostFrequent(int arr[], int n) {
+
+        // Insert all elements in hash
+        Map<Integer, Integer> hp =
+                new HashMap<Integer, Integer>();
+
+        for (int i = 0; i < n; i++) {
+            int key = arr[i];
+            if (hp.containsKey(key)) {
+                int freq = hp.get(key);
+                freq++;
+                hp.put(key, freq);
+            } else {
+                hp.put(key, 1);
+            }
+        }
+
+        // find max frequency.
+        int max_count = 0, res = -1;
+
+        for (Map.Entry<Integer, Integer> val : hp.entrySet()) {
+            if (max_count < val.getValue()) {
+                res = val.getKey();
+                max_count = val.getValue();
+            }
+        }
+
+        return res;
     }
 
     private static String arrayToString(Integer[] encodedVector) {
@@ -265,16 +527,15 @@ public class Main {
         mGlobal = m;
         rGlobal = r;
 
-        System.out.println("m = " + inputData[0] + " r = " + inputData[1]);
+        System.out.println("m = " + m + " r = " + r);
         rows = calculateRows(m, r);
 
         //For scenario 1
-        System.out.println((inputData[3]) + " value");
-        if (rows != String.valueOf(inputData[3]).length() && scenario.equals("1")) {
+        if (scenario.equals("1") && rows != String.valueOf(inputData[3]).length()) {
             System.out.println("Incorrect value, input should be the size of: " + rows);
             System.out.println("Value provided: " + inputData[3] + " which is size of: " + String.valueOf(inputData[3]).length());
             System.exit(0);
-        } else {
+        } else if (scenario.equals("1")) {
             System.out.println("Chance to fail: " + splitData[2]);
             System.out.println("Input to send: " + inputData[3]);
         }
@@ -294,6 +555,12 @@ public class Main {
         }
         rowCounter++;
 
+        //Create temporary Matrix
+        allCombinations = new int[rows][columns];
+        lValues = new int[rows][columns];
+        temporaryMatrix = new Integer[combinationAmount][columns];
+        possibleCombinations = new int[m];
+
         //Add v1,v2,...,vm
         if (r >= 1) {
             for (int i = 1; i <= m; i++) {
@@ -308,35 +575,32 @@ public class Main {
                 rowCounter++;
             }
             //Add combinations
-            if (r >= 2) {
-                //Create temporary Matrix
-                allCombinations = new int[rows][columns];
-                lValues = new int[rows][columns];
-                temporaryMatrix = new Integer[combinationAmount][columns];
-                //Prepare lValues
-                for (int i = 0; i < rows; i++) {
-                    for (int j = 0; j < columns; j++)
-                        lValues[i][j] = 0;
-                }
-                //Prepare temporary Matrix
-                for (int i = 0; i < combinationAmount; i++) {
-                    for (int j = 0; j < columns; j++)
-                        temporaryMatrix[i][j] = 1;
-                }
-                possibleCombinations = new int[m];
-                for (int i = 0; i < m; i++) {
-                    possibleCombinations[i] = i + 1;
-                }
-                for (int i = 2; i <= r; i++) {
-                    printCombination(possibleCombinations, possibleCombinations.length, i);
-                }
-                for (int i = 0; i < temporaryMatrix.length; i++) {
-                    for (int j = 0; j < columns; j++) {
-                        matrix[rowCounter][j] = temporaryMatrix[i][j];
-                    }
-                    rowCounter++;
-                }
+//            if (r >= 2) {
+
+            //Prepare lValues
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < columns; j++)
+                    lValues[i][j] = 0;
             }
+            //Prepare temporary Matrix
+            for (int i = 0; i < combinationAmount; i++) {
+                for (int j = 0; j < columns; j++)
+                    temporaryMatrix[i][j] = 1;
+            }
+
+            for (int i = 0; i < m; i++) {
+                possibleCombinations[i] = i + 1;
+            }
+            for (int i = 2; i <= r; i++) {
+                printCombination(possibleCombinations, possibleCombinations.length, i);
+            }
+            for (int i = 0; i < temporaryMatrix.length; i++) {
+                for (int j = 0; j < columns; j++) {
+                    matrix[rowCounter][j] = temporaryMatrix[i][j];
+                }
+                rowCounter++;
+            }
+//            }
         }
         //Print matrix
         printMatrix(matrix);
@@ -427,7 +691,6 @@ public class Main {
             amount += combinations(m, i);
             combinationAmount += combinations(m, i);
         }
-        System.out.println("Total combinations amount is: " + combinationAmount);
         return amount;
     }
 
@@ -446,30 +709,67 @@ public class Main {
         return fact;
     }
 
-    private static void readFile() {
+    private static void readFile(String scenario) throws IOException {
         //TODO: Logic for other scenarios
-        try {
-            File myObj = new File("src/com/company/part1.txt");
-            Scanner myReader = new Scanner(myObj);
-            while (myReader.hasNextLine()) {
-                String data = myReader.nextLine();
-                inputData = data.split(" ");
-            }
-            convertToInt(inputData);
-            if (splitData[2] > 100 || splitData[2] < 0) {
-                System.out.println("Chance to fail should be between 0-100");
-                System.exit(0);
-            }
-            myReader.close();
-        } catch (FileNotFoundException e) {
-            System.out.println("File not found.");
-            e.printStackTrace();
+        switch (scenario) {
+            case "1":
+                try {
+                    File myObj = new File("src/com/company/part1.txt");
+                    Scanner myReader = new Scanner(myObj);
+                    while (myReader.hasNextLine()) {
+                        String data = myReader.nextLine();
+                        inputData = data.split(" ");
+                    }
+                    convertToInt(inputData);
+                    if (splitData[2] > 100 || splitData[2] < 0) {
+                        System.out.println("Chance to fail should be between 0-100");
+                        System.exit(0);
+                    }
+                    myReader.close();
+                } catch (FileNotFoundException e) {
+                    System.out.println("File not found.");
+                    e.printStackTrace();
+                }
+                break;
+            case "2":
+                File file = new File("src/com/company/part2.txt");
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    String line;
+                    var counter = 0;
+                    while ((line = br.readLine()) != null) {
+                        if (counter == 0) {
+                            System.out.println(line);
+                            inputData = line.split(" ");
+                            for (int i = 0; i < inputData.length; i++) {
+                                splitData[i] = parseInt(inputData[i]);
+                            }
+                            if (splitData[2] > 100 || splitData[2] < 0) {
+                                System.out.println("Chance to fail should be between 0-100");
+                                System.exit(0);
+                            }
+                            counter++;
+                        } else {
+                            System.out.println(line);
+                            textInput = line;
+                        }
+
+                    }
+                }
+                break;
+            case "3":
+                System.out.println("scenario 3");
+                break;
+            default:
+                System.out.println("Incorrect scenario");
+                break;
+
         }
+
     }
 
     private static void convertToInt(String[] data) {
         for (int i = 0; i < data.length - 1; i++) {
-            splitData[i] = Integer.parseInt(data[i]);
+            splitData[i] = parseInt(data[i]);
         }
     }
 
