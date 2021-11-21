@@ -1,6 +1,9 @@
 package com.company;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,12 +41,6 @@ public class Main {
     // v1 * v3   1   0   1   0   0   0   0   0
     // v2 * v3   1   0   0   0   1   0   0   0
 
-    // Pradinis informacijos ilgis
-    int k; // = 1 + C^1_m + ... C^2_m
-
-    // Ilgesnio užkoduoto vektoriaus ilgis 2^m
-    int n; // = 2^m čia turbūt yra tie poaibiai 000 001 010 ....
-
     // Nusako koks bus pradinės informacijos ilgis, ir užkoduoto vektoriaus ilgis
     public static int mGlobal;
     public static int rGlobal; // r <= m
@@ -69,19 +66,27 @@ public class Main {
 
     // Variables for second task
     public static String textInput;
-    public static String[] textInputEncoded;
+    public static String[] preparedTextInput;
     public static String textAfterDecoding = "";
+
+    // Variables for third task
+    public static BufferedImage image;
+    public static String imageInput;
+    public static String[] preparedImageInput;
 
     public static void main(String[] args) throws IOException {
 
+        final long startTime = System.currentTimeMillis();
         // Enter data using BufferReader
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(System.in));
 
         // Reading data using readLine
         System.out.println("Enter which scenario to use");
-        scenario = reader.readLine();
+//        scenario = reader.readLine();
         // Printing the read line
+        scenario = "2";
+
 
         switch (scenario) {
             case "1":
@@ -97,10 +102,9 @@ public class Main {
                 readFile(scenario);
                 generateMatrix((splitData[0]), splitData[1]);
 
-                textInputEncoded = generateEncodedVector();
-                for(int i = 0; i < textInputEncoded.length; i++)
-                {
-                    encodedVector = encode(matrix, textInputEncoded[i]);
+                preparedTextInput = prepareVectorForEncoding(textInput);
+                for (int i = 0; i < preparedTextInput.length; i++) {
+                    encodedVector = encode(matrix, preparedTextInput[i]);
                     encodedVectorUpdated = encodedVector;
                     textAfterDecoding += sendThroughTunnel(encodedVector, splitData[2]);
                 }
@@ -111,41 +115,65 @@ public class Main {
                 break;
             case "3":
                 System.out.println("scenario 3");
+                readFile(scenario);
+                generateMatrix((splitData[0]), splitData[1]);
+
+                preparedImageInput = prepareVectorForEncoding(imageInput);
+                convertBinaryToImage(imageInput, "Notcoded");
+                for (int i = 0; i < preparedImageInput.length; i++) {
+                    encodedVector = encode(matrix, preparedImageInput[i]);
+                    encodedVectorUpdated = encodedVector;
+                    textAfterDecoding += sendThroughTunnel(encodedVector, splitData[2]);
+                }
+                convertBinaryToImage(textAfterDecoding, "coded");
                 break;
             default:
                 System.out.println("Incorrect scenario");
                 break;
         }
 
+        final long elapsedTimeMillis = System.currentTimeMillis() - startTime;
+        long minutes = (elapsedTimeMillis / 1000) / 60;
+        long seconds = (elapsedTimeMillis / 1000) % 60;
 
+        System.out.println("Input text size: " + textInput.length());
+        System.out.println(elapsedTimeMillis + " Milliseconds = "
+                + minutes + " minutes and "
+                + seconds + " seconds.");
+//        System.out.println("Elapsed time:" + elapsedTimeMillis);
     }
 
-    private static String[] generateEncodedVector() {
+    private static void convertBinaryToImage(String imageInput, String name) throws IOException {
+        byte[] img = new BigInteger(imageInput, 2).toByteArray();
+
+        ByteArrayInputStream bis = new ByteArrayInputStream(img);
+        BufferedImage bImage2 = ImageIO.read(bis);
+        ImageIO.write(bImage2, "bmp", new File(name + "output.bmp"));
+        System.out.println("image created");
+    }
+
+    private static String[] prepareVectorForEncoding(String textInput) {
 
         System.out.println("Text converted to binary:");
         String convertedBinary = convertStringToBinary(textInput);
         System.out.println(convertedBinary);
 
-        // TODO: Use this later
         System.out.println(prettyBinary(convertedBinary, 8, " "));
         System.out.println("Converted back to text: " + convertBinaryToString(prettyBinary(convertedBinary, 8, " ")));
 
 
         String[] encodedVectorList;
         boolean isDividable = true;
-        if(convertedBinary.length() % rows == 0)
-        {
+        if (convertedBinary.length() % rows == 0) {
             System.out.println("Text input length: " + convertedBinary.length());
             System.out.println("rows: " + rows);
             System.out.println("lenght/columns: " + convertedBinary.length() / rows);
             encodedVectorList = new String[convertedBinary.length() / rows];
-        }
-        else
-        {
+        } else {
             System.out.println("Text input length: " + convertedBinary.length());
             System.out.println("rows: " + rows);
-            System.out.println("lenght/columns + 1: " + (convertedBinary.length() / rows+1));
-            encodedVectorList = new String[convertedBinary.length() / rows+1];
+            System.out.println("lenght/columns + 1: " + (convertedBinary.length() / rows + 1));
+            encodedVectorList = new String[convertedBinary.length() / rows + 1];
             isDividable = false;
         }
 
@@ -162,12 +190,10 @@ public class Main {
                 tempText = "";
             }
         }
-        if(!isDividable)
-        {
+        if (!isDividable) {
             System.out.println("Was not dividable, filling rest with 0's");
             encodedVectorList[index] = tempText;
-            for(int charIndex = counter; charIndex < rows; charIndex++)
-            {
+            for (int charIndex = counter; charIndex < rows; charIndex++) {
                 encodedVectorList[index] += "0";
             }
         }
@@ -385,7 +411,15 @@ public class Main {
                             wString += "0";
                         }
                     }
-                    wValues[wIndex] = wString;
+                    if (wString.matches("^[0]+$") && rGlobal==mGlobal) {
+                        String tempText = "";
+                        for(int charIndex = 0; charIndex < wString.length(); charIndex++)
+                        {
+                            tempText += "1";
+                        }
+                        wValues[wIndex] = tempText;
+                    }
+                    else wValues[wIndex] = wString;
                     System.out.println("w" + wIndex + "=" + wValues[wIndex]);
                     // Scaliar product (c, w0) ...
                     // Go through each char
@@ -449,8 +483,7 @@ public class Main {
             }
             System.out.println();
         }
-        if(scenario.equals("1"))
-        {
+        if (scenario.equals("1")) {
             System.out.println("Input value");
             System.out.println(inputData[3]);
         }
@@ -542,7 +575,7 @@ public class Main {
 
         columns = (int) Math.pow(2, m);
         System.out.println("Total rows: " + rows + " Total columns: " + columns);
-        //If m < r
+
         populateH(m, columns);
 
         int rowCounter = 0;
@@ -577,29 +610,29 @@ public class Main {
             //Add combinations
 //            if (r >= 2) {
 
-            //Prepare lValues
-            for (int i = 0; i < rows; i++) {
-                for (int j = 0; j < columns; j++)
-                    lValues[i][j] = 0;
-            }
-            //Prepare temporary Matrix
-            for (int i = 0; i < combinationAmount; i++) {
-                for (int j = 0; j < columns; j++)
-                    temporaryMatrix[i][j] = 1;
-            }
-
-            for (int i = 0; i < m; i++) {
-                possibleCombinations[i] = i + 1;
-            }
-            for (int i = 2; i <= r; i++) {
-                printCombination(possibleCombinations, possibleCombinations.length, i);
-            }
-            for (int i = 0; i < temporaryMatrix.length; i++) {
-                for (int j = 0; j < columns; j++) {
-                    matrix[rowCounter][j] = temporaryMatrix[i][j];
+                //Prepare lValues
+                for (int i = 0; i < rows; i++) {
+                    for (int j = 0; j < columns; j++)
+                        lValues[i][j] = 0;
                 }
-                rowCounter++;
-            }
+                //Prepare temporary Matrix
+                for (int i = 0; i < combinationAmount; i++) {
+                    for (int j = 0; j < columns; j++)
+                        temporaryMatrix[i][j] = 1;
+                }
+
+                for (int i = 0; i < m; i++) {
+                    possibleCombinations[i] = i + 1;
+                }
+                for (int i = 2; i <= r; i++) {
+                    printCombination(possibleCombinations, possibleCombinations.length, i);
+                }
+                for (int i = 0; i < temporaryMatrix.length; i++) {
+                    for (int j = 0; j < columns; j++) {
+                        matrix[rowCounter][j] = temporaryMatrix[i][j];
+                    }
+                    rowCounter++;
+                }
 //            }
         }
         //Print matrix
@@ -757,7 +790,29 @@ public class Main {
                 }
                 break;
             case "3":
-                System.out.println("scenario 3");
+                try {
+                    File myObj = new File("src/com/company/part3.txt");
+                    Scanner myReader = new Scanner(myObj);
+                    while (myReader.hasNextLine()) {
+                        String data = myReader.nextLine();
+                        inputData = data.split(" ");
+                    }
+                    for (int i = 0; i < inputData.length; i++) {
+                        splitData[i] = parseInt(inputData[i]);
+                    }
+                    if (splitData[2] > 100 || splitData[2] < 0) {
+                        System.out.println("Chance to fail should be between 0-100");
+                        System.exit(0);
+                    }
+                    myReader.close();
+                    File myImage = new File("src/com/company/dog.bmp");
+                    image = ImageIO.read(myImage);
+                    System.out.println(image);
+                    convertImageToBinary(image);
+                } catch (FileNotFoundException e) {
+                    System.out.println("File not found.");
+                    e.printStackTrace();
+                }
                 break;
             default:
                 System.out.println("Incorrect scenario");
@@ -765,6 +820,23 @@ public class Main {
 
         }
 
+    }
+
+    private static void convertImageToBinary(BufferedImage image) throws IOException {
+
+        StringBuilder text = new StringBuilder();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ImageIO.write(image, "bmp", bos);
+
+        byte[] bytes = bos.toByteArray();
+        StringBuilder binary = new StringBuilder();
+        for (byte b : bytes) {
+            binary.append(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0'));
+        }
+        text.append(binary);
+
+        imageInput = text.toString();
+        System.out.println(imageInput);
     }
 
     private static void convertToInt(String[] data) {
