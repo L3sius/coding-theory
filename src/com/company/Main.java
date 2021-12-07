@@ -6,6 +6,7 @@ import java.io.*;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
 
@@ -67,7 +68,9 @@ public class Main {
     // Variables for second task
     public static String textInput;
     public static String[] preparedTextInput;
+    public static String[] preparedTextInputNoCode;
     public static String textAfterDecoding = "";
+    public static String noCodeText = "";
 
     // Variables for third task
     public static BufferedImage image;
@@ -83,9 +86,9 @@ public class Main {
 
         // Reading data using readLine
         System.out.println("Enter which scenario to use");
-//        scenario = reader.readLine();
+        scenario = reader.readLine();
         // Printing the read line
-        scenario = "2";
+//        scenario = "2";
 
 
         switch (scenario) {
@@ -103,15 +106,22 @@ public class Main {
                 generateMatrix((splitData[0]), splitData[1]);
 
                 preparedTextInput = prepareVectorForEncoding(textInput);
+                preparedTextInputNoCode = preparedTextInput;
+                System.out.println("this is the prepared text input " + preparedTextInput[0]);
+                System.out.println("first char" +  preparedTextInput[0].charAt(0));
                 for (int i = 0; i < preparedTextInput.length; i++) {
                     encodedVector = encode(matrix, preparedTextInput[i]);
                     encodedVectorUpdated = encodedVector;
                     textAfterDecoding += sendThroughTunnel(encodedVector, splitData[2]);
+                    noCodeText += sendThroughTunnelNoCode(preparedTextInput[i], splitData[2]);
                 }
-                System.out.println("This is the final text");
-                System.out.println(textAfterDecoding);
-                System.out.println(prettyBinary(textAfterDecoding, 8, " "));
-                System.out.println("Converted back to text: " + convertBinaryToString(prettyBinary(textAfterDecoding, 8, " ")));
+                System.out.println("Converted back to text without using code: ");
+                System.out.println(convertBinaryToString(prettyBinary(noCodeText, 8, " ")));
+//                System.out.println("This is the final text");
+//                System.out.println(textAfterDecoding);
+//                System.out.println(prettyBinary(textAfterDecoding, 8, " "));
+                System.out.println("Converted back to text after decoding: ");
+                System.out.println(convertBinaryToString(prettyBinary(textAfterDecoding, 8, " ")));
                 break;
             case "3":
                 System.out.println("scenario 3");
@@ -136,10 +146,10 @@ public class Main {
         long minutes = (elapsedTimeMillis / 1000) / 60;
         long seconds = (elapsedTimeMillis / 1000) % 60;
 
-        System.out.println("Input text size: " + textInput.length());
-        System.out.println(elapsedTimeMillis + " Milliseconds = "
-                + minutes + " minutes and "
-                + seconds + " seconds.");
+//        System.out.println("Input text size: " + textInput.length());
+//        System.out.println(elapsedTimeMillis + " Milliseconds = "
+//                + minutes + " minutes and "
+//                + seconds + " seconds.");
 //        System.out.println("Elapsed time:" + elapsedTimeMillis);
     }
 
@@ -157,9 +167,8 @@ public class Main {
         System.out.println("Text converted to binary:");
         String convertedBinary = convertStringToBinary(textInput);
         System.out.println(convertedBinary);
-
         System.out.println(prettyBinary(convertedBinary, 8, " "));
-        System.out.println("Converted back to text: " + convertBinaryToString(prettyBinary(convertedBinary, 8, " ")));
+//        System.out.println("Converted back to text: " + convertBinaryToString(prettyBinary(convertedBinary, 8, " ")));
 
 
         String[] encodedVectorList;
@@ -243,10 +252,35 @@ public class Main {
         return result.stream().collect(Collectors.joining(separator));
     }
 
+    private static String sendThroughTunnelNoCode(String encodedVectorNoCode, int chance) {
+        Random r = new Random();
+        int[] digits = (encodedVectorNoCode).chars().map(c -> c - '0').toArray();
+        System.out.println();
+        for (int i = 0; i < digits.length; i++) {
+            int chanceToSucceed = r.nextInt(10000) + 1;
+            if (chance > chanceToSucceed) {
+                switch (digits[i]) {
+                    case 0 -> digits[i] = 1;
+                    case 1 -> digits[i] = 0;
+                    default -> {
+                        System.out.println("Error encountered");
+                        System.exit(0);
+                    }
+                }
+            }
+        }
+        StringBuilder newVector = new StringBuilder();
+        for(int i = 0; i < digits.length; i++)
+        {
+            newVector.append(digits[i]);
+        }
+        return newVector.toString();
+    }
+
     private static String sendThroughTunnel(Integer[] encodedVector, int chance) throws IOException {
         Random r = new Random();
         for (int i = 0; i < encodedVector.length; i++) {
-            int chanceToSucceed = r.nextInt(100) + 1;
+            int chanceToSucceed = r.nextInt(10000) + 1;
             if (chance > chanceToSucceed) {
                 System.out.println("Chance was: " + chance + ", chanceToSucceed rolled: " + chanceToSucceed + ", digit changed: " + (i + 1));
                 switch (encodedVector[i]) {
@@ -411,15 +445,13 @@ public class Main {
                             wString += "0";
                         }
                     }
-                    if (wString.matches("^[0]+$") && rGlobal==mGlobal) {
+                    if (wString.matches("^[0]+$") && rGlobal == mGlobal) {
                         String tempText = "";
-                        for(int charIndex = 0; charIndex < wString.length(); charIndex++)
-                        {
+                        for (int charIndex = 0; charIndex < wString.length(); charIndex++) {
                             tempText += "1";
                         }
                         wValues[wIndex] = tempText;
-                    }
-                    else wValues[wIndex] = wString;
+                    } else wValues[wIndex] = wString;
                     System.out.println("w" + wIndex + "=" + wValues[wIndex]);
                     // Scaliar product (c, w0) ...
                     // Go through each char
@@ -569,7 +601,7 @@ public class Main {
             System.out.println("Value provided: " + inputData[3] + " which is size of: " + String.valueOf(inputData[3]).length());
             System.exit(0);
         } else if (scenario.equals("1")) {
-            System.out.println("Chance to fail: " + splitData[2]);
+            System.out.println("Chance to fail: " + splitData[2] + " out of 10000 or " + Double.valueOf(splitData[2])/10000);
             System.out.println("Input to send: " + inputData[3]);
         }
 
@@ -610,29 +642,29 @@ public class Main {
             //Add combinations
 //            if (r >= 2) {
 
-                //Prepare lValues
-                for (int i = 0; i < rows; i++) {
-                    for (int j = 0; j < columns; j++)
-                        lValues[i][j] = 0;
-                }
-                //Prepare temporary Matrix
-                for (int i = 0; i < combinationAmount; i++) {
-                    for (int j = 0; j < columns; j++)
-                        temporaryMatrix[i][j] = 1;
-                }
+            //Prepare lValues
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < columns; j++)
+                    lValues[i][j] = 0;
+            }
+            //Prepare temporary Matrix
+            for (int i = 0; i < combinationAmount; i++) {
+                for (int j = 0; j < columns; j++)
+                    temporaryMatrix[i][j] = 1;
+            }
 
-                for (int i = 0; i < m; i++) {
-                    possibleCombinations[i] = i + 1;
+            for (int i = 0; i < m; i++) {
+                possibleCombinations[i] = i + 1;
+            }
+            for (int i = 2; i <= r; i++) {
+                printCombination(possibleCombinations, possibleCombinations.length, i);
+            }
+            for (int i = 0; i < temporaryMatrix.length; i++) {
+                for (int j = 0; j < columns; j++) {
+                    matrix[rowCounter][j] = temporaryMatrix[i][j];
                 }
-                for (int i = 2; i <= r; i++) {
-                    printCombination(possibleCombinations, possibleCombinations.length, i);
-                }
-                for (int i = 0; i < temporaryMatrix.length; i++) {
-                    for (int j = 0; j < columns; j++) {
-                        matrix[rowCounter][j] = temporaryMatrix[i][j];
-                    }
-                    rowCounter++;
-                }
+                rowCounter++;
+            }
 //            }
         }
         //Print matrix
@@ -743,7 +775,6 @@ public class Main {
     }
 
     private static void readFile(String scenario) throws IOException {
-        //TODO: Logic for other scenarios
         switch (scenario) {
             case "1":
                 try {
@@ -754,8 +785,8 @@ public class Main {
                         inputData = data.split(" ");
                     }
                     convertToInt(inputData);
-                    if (splitData[2] > 100 || splitData[2] < 0) {
-                        System.out.println("Chance to fail should be between 0-100");
+                    if (splitData[2] > 10000 || splitData[2] < 0) {
+                        System.out.println("Chance to fail should be between 0-10000");
                         System.exit(0);
                     }
                     myReader.close();
@@ -776,8 +807,8 @@ public class Main {
                             for (int i = 0; i < inputData.length; i++) {
                                 splitData[i] = parseInt(inputData[i]);
                             }
-                            if (splitData[2] > 100 || splitData[2] < 0) {
-                                System.out.println("Chance to fail should be between 0-100");
+                            if (splitData[2] > 10000 || splitData[2] < 0) {
+                                System.out.println("Chance to fail should be between 0-10000");
                                 System.exit(0);
                             }
                             counter++;
@@ -800,8 +831,8 @@ public class Main {
                     for (int i = 0; i < inputData.length; i++) {
                         splitData[i] = parseInt(inputData[i]);
                     }
-                    if (splitData[2] > 100 || splitData[2] < 0) {
-                        System.out.println("Chance to fail should be between 0-100");
+                    if (splitData[2] > 10000 || splitData[2] < 0) {
+                        System.out.println("Chance to fail should be between 0-10000");
                         System.exit(0);
                     }
                     myReader.close();
